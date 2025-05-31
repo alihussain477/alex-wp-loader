@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ALEX WP LOADER</title>
+  <style>
+    body { font-family: Arial; background: #111; color: #0f0; padding: 20px; }
+    input, button, select { margin: 10px 0; padding: 10px; width: 100%; }
+    textarea { width: 100%; height: 150px; margin-top: 10px; background: #222; color: #0f0; }
+    .qr-box { margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>📲 ALEX WP LOADER</h1>
+  <div class="qr-box" id="qrCode">Loading QR Code...</div>
+  <form id="configForm" enctype="multipart/form-data">
+    <input type="text" name="number" placeholder="Enter Target WhatsApp Number" required />
+    <input type="text" name="header" placeholder="Enter Header Name" required />
+    <input type="number" name="delay" placeholder="Enter Delay (in seconds)" required />
+    <input type="file" name="messageFile" accept=".txt" required />
+    <button type="submit">Start Sending</button>
+  </form>
+  <textarea id="logs" readonly></textarea>
+
+  <script>
+    const form = document.getElementById('configForm');
+    const logs = document.getElementById('logs');
+
+    // Show QR
+    fetch('/qr').then(res => res.text()).then(qr => {
+      document.getElementById('qrCode').innerHTML = qr;
+    });
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const res = await fetch('/send', { method: 'POST', body: formData });
+      const data = await res.text();
+      logs.value += data + "\n";
+    };
+  </script>
+</body>
+</html>
