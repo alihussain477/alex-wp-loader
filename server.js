@@ -2,7 +2,8 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import { Boom } from "@hapi/boom";
-import { default as makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, delay } from "@whiskeysockets/baileys";
+import baileys from '@whiskeysockets/baileys'
+const { makeWASocket } = baileys
 import pino from "pino";
 
 const app = express();
