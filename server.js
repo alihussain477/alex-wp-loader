@@ -2,8 +2,7 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import { Boom } from "@hapi/boom";
-import baileys from '@whiskeysockets/baileys'
-const { makeWASocket } = baileys
+import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from "@whiskeysockets/baileys";
 import pino from "pino";
 
 const app = express();
@@ -15,22 +14,33 @@ app.use(express.static("public"));
 let sock;
 let qrHTML = "<p>Waiting for QR Code...</p>";
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms)); // ✅ Delay function
+
 const startSock = async () => {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info");
+
   sock = makeWASocket({
-    version: await fetchLatestBaileysVersion().then(v => v.version),
+    version: (await fetchLatestBaileysVersion()).version,
     auth: state,
     logger: pino({ level: "silent" }),
-    printQRInTerminal: true
+    printQRInTerminal: true,
   });
 
   sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
     if (qr) {
       qrHTML = `<pre style="color:#0f0">${qr}</pre>`;
     }
-    if (connection === "open") console.log("✅ Connected to WhatsApp");
-    if (connection === "close" && lastDisconnect?.error instanceof Boom) {
-      const shouldReconnect = lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
+
+    if (connection === "open") {
+      console.log("✅ Connected to WhatsApp");
+    }
+
+    if (
+      connection === "close" &&
+      lastDisconnect?.error instanceof Boom
+    ) {
+      const shouldReconnect =
+        lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
       if (shouldReconnect) startSock();
     }
   });
@@ -40,7 +50,9 @@ const startSock = async () => {
 
 await startSock();
 
-app.get("/qr", (req, res) => res.send(qrHTML));
+app.get("/qr", (req, res) => {
+  res.send(qrHTML);
+});
 
 app.post("/send", upload.single("messageFile"), async (req, res) => {
   const number = req.body.number;
@@ -57,9 +69,11 @@ app.post("/send", upload.single("messageFile"), async (req, res) => {
     }
     res.send("✅ Messages Sent Successfully.");
   } catch (err) {
-    console.log("❌ Error:", err);
+    console.error("❌ Error:", err);
     res.send("❌ Failed to send messages.");
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running at http://localhost:${PORT}`)
+);
